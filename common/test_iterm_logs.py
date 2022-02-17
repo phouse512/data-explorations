@@ -299,10 +299,16 @@ def test_parse_logs_to_session_3():
         CommandData(ANY, "curl -v  https://api.dota-int.com", 0, ANY, True),
         CommandData(ANY, "curl https://api.dota-int.com", 130, ANY, True),
         CommandData(ANY, "curl -v  https://api.dota-int.com", 130, ANY, True),
-#         CommandData(ANY, "curl -v  https://api.dota-int.com", 0, ANY, True),
-        # CommandData(1616167901.768, "pycharm .", 0, pytest.approx(2.557, rel=1e-4), True),
-        # CommandData(1616164367.385, "factory_db_prod", -999999, -1, False),
-        # CommandData(1616164503.407, "amper_juypter", -999999, -1, False),
+        CommandData(ANY, "ls", 0, ANY, True),
+        CommandData(ANY, "ls", 0, ANY, True),
+        CommandData(ANY, "ls", 0, ANY, True),
+        CommandData(ANY, "cd amper/sheik/nginx.conf", 1, ANY, True),
+        CommandData(ANY, "ee \"2021-03-19 00:00:00\" \"2021-03-19 11:40:00\"", 0, ANY, True),
+        CommandData(ANY, "ee \"2021-03-16 00:00:00\" \"2021-03-18 00:00:00\"", 0, ANY, True),
+        CommandData(ANY, "ee \"2021-03-12 00:00:00\" \"2021-03-14 00:00:00\"", 0, ANY, True),
+        CommandData(ANY, "ee \"2021-03-14 00:00:00\" \"2021-03-16 00:00:00\"", 0, ANY, True),
+        CommandData(ANY, "ee \"2021-03-18 00:00:00\" \"2021-03-19 00:00:00\"", 0, ANY, True),
+        CommandData(ANY, "factory_db_prod", -999999, -1, False),
     ]
 
     matches = 0
@@ -310,4 +316,5 @@ def test_parse_logs_to_session_3():
         if command in required_commands:
             matches += 1
 
-    assert matches == len(required_commands) 
+    assert matches == len(required_commands)
+
