@@ -28,8 +28,10 @@ def test_parse_logs_to_sessions_1():
     commands, bad_lines = parse_logs_to_sessions(lines)
     assert len(bad_lines) == 0
     assert len(commands) == 7
-    assert commands[0] == CommandData(1616164343.421, "session-init", 0, pytest.approx(2.062, rel=1e-4), True)
-    assert commands[-1] == CommandData(1616164343.424, "session-init", 0, pytest.approx(2.28, rel=1e-4), True)
+    assert commands[0] == CommandData(timestamp=1616164343.421, command="session-init", 
+            exit_status=0, duration=2, clean=True)
+    assert commands[-1] == CommandData(timestamp=1616164343.424, command="session-init", 
+            exit_status=0, duration=2, clean=True)
        
 
 def test_parse_logs_to_sessions_2():

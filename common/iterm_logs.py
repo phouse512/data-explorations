@@ -4,8 +4,38 @@ from datetime import datetime
 import os
 from typing import Dict, List, Tuple, Union
 
-CommandData = namedtuple("CommandData", ["timestamp", "command", "exit_status", "duration", "clean"])
-RowData = namedtuple("RowData", ["timestamp", "type", "data", "session"])
+from pydantic import BaseModel
+
+
+class CommandData(BaseModel):
+    """ Representation of command entered in terminal session. """
+
+    timestamp: float  # epoch time, in seconds
+    command: str
+    exit_status: int
+    duration: float  # in seconds
+    clean: bool
+
+    def __eq__(self, obj):
+        """ Custom equality comparision, exclude duration from calculation """
+        return isinstance(obj, CommandData) and (
+                    self.timestamp == obj.timestamp and
+                    self.command == obj.command and
+                    self.exit_status == obj.exit_status and
+                    self.clean == obj.clean
+                )
+
+    def __ne__(self, obj):
+        return not self == obj
+
+
+class RowData(BaseModel):
+    """ Representation of row data directly out of iterm logs. """
+
+    timestamp: float
+    row_type: str
+    data: str
+    session: str
 
 
 def load_logs(directory: str) -> List[str]:
@@ -42,7 +72,12 @@ def parse_logs_to_sessions(log_lines: List[str]) -> Tuple[List[CommandData], Lis
             # handle the special new session case
             if "new session" in dash_split[6]:
                 session_str = row.split(" ")[3]
-                row_data.append(RowData(epoch_time, "command", "session-init", session_str))
+                row_data.append(RowData(
+                    timestamp=epoch_time, 
+                    row_type="command", 
+                    data="session-init", 
+                    session=session_str,
+                ))
                 continue
 
             status_data = "-".join(dash_split[12:])
@@ -65,10 +100,10 @@ def parse_logs_to_sessions(log_lines: List[str]) -> Tuple[List[CommandData], Lis
             continue 
 
         row_data.append(RowData(
-            epoch_time,
-            status_type,
-            status_output,
-            session,
+            timestamp=epoch_time,
+            row_type=status_type,
+            data=status_output,
+            session=session,
         ))
     
     # create an map of session -> a list of RowData objects
@@ -88,30 +123,30 @@ def parse_logs_to_sessions(log_lines: List[str]) -> Tuple[List[CommandData], Lis
 
         for _, sorted_row in enumerate(sorted_rows):
             # handle edge case with no data entered for a command "user hits enter with no data"
-            if sorted_row.type == "command" and not sorted_row.data:
+            if sorted_row.row_type == "command" and not sorted_row.data:
                 print("no command data, not processing.")
                 continue
 
-            if last_command is None and sorted_row.type == "status":
+            if last_command is None and sorted_row.row_type == "status":
                 print("status but no command, skipping")
                 continue
             
-            if last_command is None and sorted_row.type == "command":
+            if last_command is None and sorted_row.row_type == "command":
                 last_command = sorted_row
                 continue
             
-            if last_command is not None and sorted_row.type == "status":
+            if last_command is not None and sorted_row.row_type == "status":
                 commands.append(CommandData(
-                    last_command.timestamp,
-                    last_command.data,
-                    int(sorted_row.data),
-                    sorted_row.timestamp - last_command.timestamp,
-                    True,
+                    timestamp=last_command.timestamp,
+                    command=last_command.data,
+                    exit_status=int(sorted_row.data),
+                    duration=float(sorted_row.timestamp - last_command.timestamp),
+                    clean=True,
                 ))
                 last_command = None
                 continue
 
-            if last_command is not None and sorted_row.type == "command":
+            if last_command is not None and sorted_row.row_type == "command":
                 print("command found with open command, skipping previous command")
                 last_command = sorted_row
                 continue
@@ -120,11 +155,11 @@ def parse_logs_to_sessions(log_lines: List[str]) -> Tuple[List[CommandData], Lis
         if last_command != None:
             print("command found with no end, adding dirty block")
             commands.append(CommandData(
-                last_command.timestamp,
-                last_command.data,
-                -999999,
-                -1,
-                False,
+                timestamp=last_command.timestamp,
+                command=last_command.data,
+                exit_status=-999999,
+                duration=-1,
+                clean=False,
             ))
             
     return commands, bad_rows
